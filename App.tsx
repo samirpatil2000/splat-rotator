@@ -1,8 +1,9 @@
 
-import React, { useState, useCallback } from 'react';
-import { Download, Upload, RotateCcw, Settings2, Box, Move, Layers, Cpu, Terminal, FileCode, Loader2, FileUp } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Download, Upload, RotateCcw, Settings2, Box, Move, Layers, Cpu, Terminal, FileCode, Loader2, FileUp, Eye, Wrench } from 'lucide-react';
 import ControlPanel from './components/ControlPanel';
 import Header from './components/Header';
+import PlayCanvasViewer from './components/PlayCanvasViewer';
 import { SplatTransform, Vector3 } from './types';
 
 const App: React.FC = () => {
@@ -16,6 +17,19 @@ const App: React.FC = () => {
   const [fileName, setFileName] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [viewMode, setViewMode] = useState<'processor' | 'viewer'>('processor');
+
+  const blobUrl = useMemo(() => {
+    if (!fileBuffer) return null;
+    const blob = new Blob([fileBuffer], { type: 'application/octet-stream' });
+    return URL.createObjectURL(blob);
+  }, [fileBuffer]);
+
+  useEffect(() => {
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [blobUrl]);
 
   const handleTransformChange = useCallback((category: keyof SplatTransform, axis: keyof Vector3 | 'all', value: number) => {
     setTransform(prev => {
@@ -218,72 +232,117 @@ const App: React.FC = () => {
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#6366f1 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
           
           {fileBuffer ? (
-            <div className="w-full h-full flex flex-col items-center justify-center p-12">
-              <div className="w-full max-w-3xl bg-slate-900/60 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5">
-                   <FileCode className="w-40 h-40" />
-                </div>
-                
-                <div className="flex items-center justify-between mb-10 relative z-10">
-                  <div className="flex items-center gap-5">
-                    <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
-                      <Cpu className="w-8 h-8 text-indigo-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-black text-white tracking-tight uppercase">Spark Engine Processor</h2>
-                      <p className="text-[10px] text-indigo-400/60 font-mono uppercase tracking-[0.3em] font-bold">Orientation-Aware Baking</p>
-                    </div>
-                  </div>
-                  <div className="px-4 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-full flex items-center gap-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Active Buffer</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
-                  <div className="p-6 bg-white/[0.03] border border-white/[0.05] rounded-3xl group">
-                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Source Dataset</span>
-                     <p className="text-sm font-mono text-white truncate mb-1">{fileName}</p>
-                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{(fileBuffer.byteLength / 1024 / 1024).toFixed(2)} MB • Binary PLY</p>
-                  </div>
-                  <div className="p-6 bg-white/[0.03] border border-white/[0.05] rounded-3xl">
-                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Target Rotation</span>
-                     <div className="flex gap-4">
-                        {/* Fix: Directly access rotation properties to avoid 'unknown' type issues from Object.values */}
-                        {(['x', 'y', 'z'] as const).map((axis) => (
-                           <div key={axis} className="flex-1 text-center">
-                              <p className="text-[10px] font-bold text-slate-600 mb-1">{axis.toUpperCase()}</p>
-                              <p className="text-lg font-mono text-white">{Math.round(transform.rotation[axis])}°</p>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-                  <div className="p-6 bg-white/[0.03] border border-white/[0.05] rounded-3xl">
-                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Translation</span>
-                     <p className="text-xl font-mono text-white tracking-tighter">
-                       {transform.position.x.toFixed(2)}, {transform.position.y.toFixed(2)}, {transform.position.z.toFixed(2)}
-                     </p>
-                  </div>
-                  <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl">
-                     <span className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.2em] block mb-3">Global Scalar</span>
-                     <p className="text-2xl font-mono text-indigo-400 font-black tracking-tighter">×{transform.scale.toFixed(2)}</p>
-                  </div>
-                </div>
-
-                <div className="mt-10 pt-8 border-t border-white/5 flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-3 text-slate-500 font-mono text-[10px] font-bold uppercase tracking-widest">
-                    <Terminal className="w-4 h-4 text-indigo-500" />
-                    Bake logic: Quaternion Cloud-Splat Sync
-                  </div>
-                  <button 
-                    onClick={handleReset}
-                    className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    Reset Params
-                  </button>
-                </div>
+            <div className="w-full h-full relative flex flex-col">
+              {/* Mode Toggle */}
+              <div className="absolute top-6 left-6 z-30 flex bg-slate-900/80 backdrop-blur-xl p-1 rounded-2xl border border-white/5 shadow-2xl">
+                <button 
+                  onClick={() => setViewMode('processor')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'processor' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                >
+                  <Wrench className="w-3.5 h-3.5" />
+                  Processor
+                </button>
+                <button 
+                  onClick={() => setViewMode('viewer')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'viewer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Spark2 View
+                </button>
               </div>
+
+              {viewMode === 'processor' ? (
+                <div className="w-full h-full flex flex-col items-center justify-center p-12">
+                  <div className="w-full max-w-3xl bg-slate-900/60 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-5">
+                       <FileCode className="w-40 h-40" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between mb-10 relative z-10">
+                      <div className="flex items-center gap-5">
+                        <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                          <Cpu className="w-8 h-8 text-indigo-400" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-black text-white tracking-tight uppercase">Spark 2 Processor</h2>
+                          <p className="text-[10px] text-indigo-400/60 font-mono uppercase tracking-[0.3em] font-bold">Orientation-Aware Baking</p>
+                        </div>
+                      </div>
+                      <div className="px-4 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-full flex items-center gap-2">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Active Buffer</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                      <div className="p-6 bg-white/[0.03] border border-white/[0.05] rounded-3xl group">
+                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Source Dataset</span>
+                         <p className="text-sm font-mono text-white truncate mb-1">{fileName}</p>
+                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{(fileBuffer.byteLength / 1024 / 1024).toFixed(2)} MB • Binary PLY</p>
+                      </div>
+                      <div className="p-6 bg-white/[0.03] border border-white/[0.05] rounded-3xl">
+                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Target Rotation</span>
+                         <div className="flex gap-4">
+                            {(['x', 'y', 'z'] as const).map((axis) => (
+                               <div key={axis} className="flex-1 text-center">
+                                  <p className="text-[10px] font-bold text-slate-600 mb-1">{axis.toUpperCase()}</p>
+                                  <p className="text-lg font-mono text-white">{Math.round(transform.rotation[axis])}°</p>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                      <div className="p-6 bg-white/[0.03] border border-white/[0.05] rounded-3xl">
+                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Translation</span>
+                         <p className="text-xl font-mono text-white tracking-tighter">
+                           {transform.position.x.toFixed(2)}, {transform.position.y.toFixed(2)}, {transform.position.z.toFixed(2)}
+                         </p>
+                      </div>
+                      <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl">
+                         <span className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.2em] block mb-3">Global Scalar</span>
+                         <p className="text-2xl font-mono text-indigo-400 font-black tracking-tighter">×{transform.scale.toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-10 pt-8 border-t border-white/5 flex items-center justify-between relative z-10">
+                      <div className="flex items-center gap-3 text-slate-500 font-mono text-[10px] font-bold uppercase tracking-widest">
+                        <Terminal className="w-4 h-4 text-indigo-500" />
+                        Bake logic: Quaternion Cloud-Splat Sync
+                      </div>
+                      <button 
+                        onClick={handleReset}
+                        className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Reset Params
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-full bg-black relative">
+                  {blobUrl && (
+                    <PlayCanvasViewer url={blobUrl} transform={transform} />
+                  )}
+                  {/* Overlay for Viewer */}
+                  <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
+                    <div className="p-4 bg-slate-900/80 backdrop-blur-md border border-white/5 rounded-2xl pointer-events-auto">
+                      <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-1 italic">Spark2 Engine Powering Preview</p>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Real-time GPU Rasterization</p>
+                    </div>
+                    <div className="p-4 bg-slate-900/80 backdrop-blur-md border border-white/5 rounded-2xl pointer-events-auto flex gap-4">
+                      <div className="text-center">
+                        <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest">FPS</p>
+                        <p className="text-xs font-mono text-emerald-400">Locked</p>
+                      </div>
+                      <div className="w-[1px] bg-white/10" />
+                      <div className="text-center">
+                        <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Points</p>
+                        <p className="text-xs font-mono text-white text-right">Adaptive</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
@@ -295,7 +354,7 @@ const App: React.FC = () => {
               </div>
               <h2 className="text-4xl font-black text-white mb-3 tracking-tighter uppercase italic">Splat<span className="text-indigo-500">Bake</span></h2>
               <p className="text-slate-500 max-w-sm mb-12 text-sm leading-relaxed font-bold uppercase tracking-widest opacity-80">
-                Fix spikes with orientation-aware baking.<br/>Headless Binary PLY Manipulation.
+                Fix spikes with orientation-aware baking.<br/>Powered by Spark 2.0 Binary Engine.
               </p>
               <label className="group relative flex items-center gap-5 py-6 px-20 bg-indigo-600 hover:bg-indigo-500 rounded-[2rem] text-white font-black transition-all shadow-[0_20px_50px_rgba(79,70,229,0.3)] cursor-pointer overflow-hidden uppercase tracking-[0.3em] text-xs">
                 <FileUp className="w-5 h-5" />
@@ -323,6 +382,8 @@ const App: React.FC = () => {
                 onTransformChange={handleTransformChange}
                 onReset={handleReset}
                 splatName={fileName}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-32 px-6 bg-white/[0.01] rounded-[2rem] border border-white/[0.03] border-dashed">

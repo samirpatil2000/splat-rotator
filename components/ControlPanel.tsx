@@ -8,13 +8,17 @@ interface ControlPanelProps {
   onTransformChange: (category: keyof SplatTransform, axis: keyof Vector3 | 'all', value: number) => void;
   onReset: () => void;
   splatName: string;
+  viewMode: 'processor' | 'viewer';
+  onViewModeChange: (mode: 'processor' | 'viewer') => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({ 
   transform, 
   onTransformChange, 
   onReset,
-  splatName 
+  splatName,
+  viewMode,
+  onViewModeChange
 }) => {
   return (
     <div className="space-y-10 pb-20">

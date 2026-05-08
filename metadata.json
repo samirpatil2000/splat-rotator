@@ -1,5 +1,6 @@
 {
-  "name": "Splat Rotator",
+  "name": "Spark2 Splat Rotator",
   "description": "Headless high-performance tool built with @sparkjsdev/spark logic for baking rotations, translations, and scaling into Gaussian Splat .ply files.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }
