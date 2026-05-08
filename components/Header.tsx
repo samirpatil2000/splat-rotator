@@ -11,7 +11,7 @@ const Header: React.FC = () => {
         </div>
         <div>
           <h1 className="text-lg font-bold tracking-tight text-white leading-tight">SplatRotate</h1>
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">GS-Engine 3D</p>
+          <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest">Spark2 Engine</p>
         </div>
       </div>
 

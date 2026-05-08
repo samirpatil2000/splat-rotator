@@ -1,9 +1,9 @@
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Download, Upload, RotateCcw, Settings2, Box, Move, Layers, Cpu, Terminal, FileCode, Loader2, FileUp, Eye, Wrench } from 'lucide-react';
 import ControlPanel from './components/ControlPanel';
 import Header from './components/Header';
-import PlayCanvasViewer from './components/PlayCanvasViewer';
+import SparkViewer from './components/SparkViewer';
 import { SplatTransform, Vector3 } from './types';
 
 const App: React.FC = () => {
@@ -18,18 +18,6 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [viewMode, setViewMode] = useState<'processor' | 'viewer'>('processor');
-
-  const blobUrl = useMemo(() => {
-    if (!fileBuffer) return null;
-    const blob = new Blob([fileBuffer], { type: 'application/octet-stream' });
-    return URL.createObjectURL(blob);
-  }, [fileBuffer]);
-
-  useEffect(() => {
-    return () => {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-    };
-  }, [blobUrl]);
 
   const handleTransformChange = useCallback((category: keyof SplatTransform, axis: keyof Vector3 | 'all', value: number) => {
     setTransform(prev => {
@@ -320,8 +308,8 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 <div className="w-full h-full bg-black relative">
-                  {blobUrl && (
-                    <PlayCanvasViewer url={blobUrl} transform={transform} />
+                  {fileBuffer && (
+                    <SparkViewer buffer={fileBuffer} transform={transform} />
                   )}
                   {/* Overlay for Viewer */}
                   <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
